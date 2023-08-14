@@ -6,6 +6,8 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from datetime import datetime
 import zipfile as zf
+import shutil
+import pathlib
 import time
 
 
@@ -23,33 +25,29 @@ def load_day(day_trade):
 	# Извлечение данных и сохранение в файлы
 	for item in tickers:
 		time.sleep(0.3)
-		if item.startswith('Z'):
-			finam_parsing(new_dir, item, day_start, day_start_new)
-			
+		finam_parsing(new_dir, item, day_start, day_start_new)
+	
+	# Завершение операций: сжатие и удаление
 	zip_files(new_dir)
 	delete_files(new_dir)
 	
 	
 def zip_files(curr_dir):
-	"""Сжатие созданных файлов в архивы."""
-	cur_dir = os.getcwd()
-	for file in os.listdir(curr_dir):
-		if file.endswith('csv') and os.stat(curr_dir + file).st_size != 0:
-			zip_name = file.replace('.csv', '.zip')
-			zip_file = os.path.join(curr_dir, zip_name)
-			f = os.path.join(curr_dir, file)
-			with zf.ZipFile(zip_file, 'w') as fz:
-				fz.write(f, compress_type=zf.ZIP_DEFLATED)
-				
-				
+	"""Сжатие созданных файлов в архив."""
+	cur_dir = pathlib.Path(curr_dir)
+	zip_name = cur_dir.stem + '.zip'
+	with zf.ZipFile(zip_name, mode='w') as fout:
+		for file in cur_dir.iterdir():
+			if os.stat(file).st_size != 0:
+				fout.write(file, arcname=file.name, compress_type=zf.ZIP_DEFLATED, compresslevel=9)
+	
+
 def delete_files(curr_dir):
 	"""Удаление файлов, которые были сжаты в архивы."""
-	for file in os.listdir(curr_dir):
-		if file.endswith('.csv'):
-			f = os.path.join(curr_dir, file)
-			os.remove(f)
+	if os.path.exists(curr_dir):
+		shutil.rmtree(curr_dir)
+
 			
-		
 def finam_parsing(dir_new, stock, start, start_new):
 	"""Парсинг и загрузка данных торгов по списку акций."""
 	params = urlencode([
@@ -90,7 +88,7 @@ def finam_parsing(dir_new, stock, start, start_new):
 
 
 if __name__ == '__main__':
-	# day_down = input('Введите день загрузки в формате <<ДД.ММ.ГГГГ>> :\n')
-	day_down = '09.08.2023'
+	day_down = input('Введите день загрузки в формате <<ДД.ММ.ГГГГ>> :\n')
+	# day_down = '11.08.2023'
 	load_day(day_down)
 	

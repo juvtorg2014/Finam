@@ -1,4 +1,4 @@
-#каждой акции Финам присвоил цифровой код:
+# У каждой акции Финам присвоил цифровой код:
 tickers = {'ABRD': 82460, 'AESL': 181867, 'AFKS': 19715, 'AFLT': 29, 'AGRO': 399716, 'AKRN': 17564, 'ALBK': 82616,
            'ALNU': 81882, 'ALRS': 81820, 'AMEZ': 20702, 'APTK': 13855, 'AQUA': 35238, 'ARMD': 19676, 'ARSA': 19915,
            'ASSB': 16452, 'AVAN': 82843, 'AVAZ': 39, 'AVAZP': 40, 'BANE': 81757, 'BANEP': 81758, 'BGDE': 175840,
@@ -43,5 +43,4 @@ tickers = {'ABRD': 82460, 'AESL': 181867, 'AFKS': 19715, 'AFLT': 29, 'AGRO': 399
            'VSYDP': 83252, 'VTBR': 19043, 'VTGK': 19632, 'VTRS': 82886, 'VZRZ': 17068, 'VZRZP': 17067, 'WTCM': 19095,
            'WTCMP': 19096, 'YAKG': 81917, 'YKEN': 81766, 'YKENP': 81769, 'YNDX': 388383, 'YRSB': 16342, 'YRSBP': 16343,
            'ZHIV': 181674, 'ZILL': 81918, 'ZMZN': 556, 'ZMZNP': 603, 'ZVEZ': 82001}
-
 FINAM_URL = "http://export.finam.ru/"
