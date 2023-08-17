@@ -2,9 +2,9 @@
 
 from tickers import tickers, FINAM_URL
 import os
-from urllib.request import Request, urlopen
+import requests
 from urllib.parse import urlencode
-from datetime import datetime
+from datetime import datetime, timedelta
 import zipfile as zf
 import shutil
 import pathlib
@@ -80,15 +80,35 @@ def finam_parsing(dir_new, stock, start, start_new):
 	file_name = stock + '_' + start_new + '.csv'
 	url = FINAM_URL + file_name + '?' + params
 	print(url)
-	responce = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
-	txt = urlopen(responce).readlines()
-	with open(dir_new + file_name, 'w') as f:
-		for line in txt:
-			f.write(line.strip().decode("utf-8") + '\n')
-
+	responce = requests.get(url=url, headers={'User-Agent': 'Mozilla/5.0'})
+	if responce.status_code == 200:
+		txt = responce.text
+		with open(dir_new + file_name, 'w') as f:
+			for line in txt.split():
+				try:
+					f.write(line.strip() + '\n')
+				except Exception as e:
+					print(line, e)
+					continue
+	else:
+		print(f'Не доступен {responce.url}')
+		
 
 if __name__ == '__main__':
-	day_down = input('Введите день загрузки в формате <<ДД.ММ.ГГГГ>> :\n')
-	# day_down = '11.08.2023'
+	# day_down = input('Введите день загрузки в формате <<ДД.ММ.ГГГГ>> :\n')
+	tek_day = datetime.today()
+	if tek_day.weekday() == 0:
+		last_day = tek_day - timedelta(3)
+		day_down = last_day.strftime('%d.%m.%Y')
+	elif tek_day.weekday() == 7:
+		last_day = tek_day - timedelta(2)
+		day_down = last_day.strftime('%d.%m.%Y')
+	else:
+		last_day = tek_day - timedelta(1)
+		day_down = last_day.strftime('%d.%m.%Y')
+	start_time = datetime.now()
 	load_day(day_down)
+	time_end = str(datetime.now() - start_time).split('.')[0]
+	print("Все сделано за", time_end)
+	
 	
