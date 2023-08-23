@@ -5,10 +5,13 @@ import os
 import requests
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
+from fake_useragent import UserAgent
 import zipfile as zf
 import shutil
 import pathlib
 import time
+
+ANSWER = 'Система уже обрабатывает Ваш запрос. Дождитесь окончания обработки.'
 
 
 def load_day(day_trade):
@@ -24,7 +27,7 @@ def load_day(day_trade):
 		
 	# Извлечение данных и сохранение в файлы
 	for item in tickers:
-		time.sleep(0.3)
+		time.sleep(1)
 		finam_parsing(new_dir, item, day_start, day_start_new)
 	
 	# Завершение операций: сжатие и удаление
@@ -79,33 +82,54 @@ def finam_parsing(dir_new, stock, start, start_new):
 	
 	file_name = stock + '_' + start_new + '.csv'
 	url = FINAM_URL + file_name + '?' + params
-	print(url)
-	responce = requests.get(url=url, headers={'User-Agent': 'Mozilla/5.0'})
-	if responce.status_code == 200:
-		txt = responce.text
+	ua = UserAgent()
+	header = {'User-Agent': str(ua.random)}
+	respon = requests.get(url=url, headers=header)
+	if respon.status_code == 200:
+		print(respon.url)
+		txt = respon.text
+		if txt.strip() == ANSWER:
+			print('Подождите, не сразу загружается', stock)
+			time.sleep(5)
+			while True:
+				respon == requests.get(url=url, headers={'User-Agent': str(ua.random)})
+				if respon.status_code == 200:
+					deals = respon.text
+					if len(deals) > len(ANSWER) + 1:
+						break
+		else:
+			deals = txt
 		with open(dir_new + file_name, 'w') as f:
-			for line in txt.split():
+			for line in deals.split():
 				try:
 					f.write(line.strip() + '\n')
 				except Exception as e:
 					print(line, e)
 					continue
 	else:
-		print(f'Не доступен {responce.url}')
+		print(f'Не доступен {respon.url}')
 		
-
-if __name__ == '__main__':
-	# day_down = input('Введите день загрузки в формате <<ДД.ММ.ГГГГ>> :\n')
-	tek_day = datetime.today()
+		
+def yesterday_work(tek_day) -> str:
 	if tek_day.weekday() == 0:
 		last_day = tek_day - timedelta(3)
-		day_down = last_day.strftime('%d.%m.%Y')
+		return last_day.strftime('%d.%m.%Y')
 	elif tek_day.weekday() == 7:
 		last_day = tek_day - timedelta(2)
-		day_down = last_day.strftime('%d.%m.%Y')
+		return last_day.strftime('%d.%m.%Y')
 	else:
 		last_day = tek_day - timedelta(1)
-		day_down = last_day.strftime('%d.%m.%Y')
+		return last_day.strftime('%d.%m.%Y')
+
+		
+if __name__ == '__main__':
+	day_d = input('Введите дату в формате <<ДД.ММ.ГГГГ>> или ENTER для вчерашнего:\n')
+	# day_d = ''
+	if len(day_d) == 10:
+		day_down = day_d
+	else:
+		yes_day = datetime.today()
+		day_down = yesterday_work(yes_day)
 	start_time = datetime.now()
 	load_day(day_down)
 	time_end = str(datetime.now() - start_time).split('.')[0]
