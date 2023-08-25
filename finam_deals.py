@@ -1,6 +1,5 @@
 # Загрузка с Финама тиковых данных доступных акций и фьючерсов
-
-from tickers import tickers, FINAM_URL
+import tickers
 import os
 import requests
 from urllib.parse import urlencode
@@ -12,6 +11,7 @@ import pathlib
 import time
 
 ANSWER = 'Система уже обрабатывает Ваш запрос. Дождитесь окончания обработки.'
+LIST_DAYS = (0, 1, 2, 3, 4)
 
 
 def load_day(day_trade):
@@ -26,7 +26,7 @@ def load_day(day_trade):
 		os.mkdir(new_dir)
 		
 	# Извлечение данных и сохранение в файлы
-	for item in tickers:
+	for item in tickers.tickers:
 		time.sleep(1)
 		finam_parsing(new_dir, item, day_start, day_start_new)
 	
@@ -55,7 +55,7 @@ def finam_parsing(dir_new, stock, start, start_new):
 	"""Парсинг и загрузка данных торгов по списку акций."""
 	params = urlencode([
 		('market', 0),  # на каком рынке торгуется бумага
-		('em', tickers[stock]),  # вытягиваем цифровой символ, который соответствует бумаге.
+		('em', tickers.tickers[stock]),  # вытягиваем цифровой символ, который соответствует бумаге.
 		('code', stock),  # тикер нашей акции
 		('apply', 0),  # не нашёл что это значит.
 		('df', start.day),  # Начальная дата, номер дня (1-31)
@@ -81,7 +81,7 @@ def finam_parsing(dir_new, stock, start, start_new):
 		('at', 1)])  # Нужны ли заголовки столбцов
 	
 	file_name = stock + '_' + start_new + '.csv'
-	url = FINAM_URL + file_name + '?' + params
+	url = tickers.FINAM_URL + file_name + '?' + params
 	ua = UserAgent()
 	header = {'User-Agent': str(ua.random)}
 	respon = requests.get(url=url, headers=header)
@@ -92,6 +92,7 @@ def finam_parsing(dir_new, stock, start, start_new):
 			print('Подождите, не сразу загружается', stock)
 			time.sleep(5)
 			while True:
+				time.sleep(5)
 				respon == requests.get(url=url, headers={'User-Agent': str(ua.random)})
 				if respon.status_code == 200:
 					deals = respon.text
@@ -120,18 +121,43 @@ def yesterday_work(tek_day) -> str:
 	else:
 		last_day = tek_day - timedelta(1)
 		return last_day.strftime('%d.%m.%Y')
+	
 
-		
-if __name__ == '__main__':
-	day_d = input('Введите дату в формате <<ДД.ММ.ГГГГ>> или ENTER для вчерашнего:\n')
-	# day_d = ''
-	if len(day_d) == 10:
-		day_down = day_d
+def make_list_days(first, second,) -> list:
+	days = [d for d in range(first, second + 1)]
+	weeks = [days[i:i + 7] for i in range(0, len(days), 7)]
+	work_weeks = [week[0:5] for week in weeks]
+	list_days = sum(work_weeks, [])
+	return list_days
+
+
+def counts_days(number) -> list:
+	if number in tickers.short_month:
+		return tickers.days[:30]
+	elif number == 2:
+		return tickers.days[:28]
 	else:
-		yes_day = datetime.today()
-		day_down = yesterday_work(yes_day)
+		return tickers.days
+	
+if __name__ == '__main__':
+	# day_d = input('Введите дату в формате <<ДД.ММ.ГГГГ>> или ENTER для вчерашнего:\n')
+	# day_d = ''
+	# if len(day_d) == 10:
+	# 	day_down = day_d
+	# else:
+	# 	yes_day = datetime.today()
+	# 	day_down = yesterday_work(yes_day)
 	start_time = datetime.now()
-	load_day(day_down)
+	month = 5
+	counts_days = counts_days(month)
+	for day in counts_days:
+		day_down = day + '.' + tickers.month[month-1] + '.2023'
+		if not day_down[:5] in tickers.holidays:
+			day_d = datetime.strptime(day_down, '%d.%m.%Y').date()
+			if day_d.weekday() in LIST_DAYS:
+				pass
+				print(day_down)
+				#load_day(day_down)
 	time_end = str(datetime.now() - start_time).split('.')[0]
 	print("Все сделано за", time_end)
 	
