@@ -139,25 +139,23 @@ def counts_days(number) -> list:
 	else:
 		return tickers.days
 	
+	
 if __name__ == '__main__':
-	# day_d = input('Введите дату в формате <<ДД.ММ.ГГГГ>> или ENTER для вчерашнего:\n')
-	# day_d = ''
-	# if len(day_d) == 10:
-	# 	day_down = day_d
-	# else:
-	# 	yes_day = datetime.today()
-	# 	day_down = yesterday_work(yes_day)
+	choise = input('Введите дату в формате <<ДД.ММ.ГГГГ>> или номер месяца:\n')
 	start_time = datetime.now()
-	month = 5
-	counts_days = counts_days(month)
-	for day in counts_days:
-		day_down = day + '.' + tickers.month[month-1] + '.2023'
-		if not day_down[:5] in tickers.holidays:
-			day_d = datetime.strptime(day_down, '%d.%m.%Y').date()
-			if day_d.weekday() in LIST_DAYS:
-				pass
-				print(day_down)
-				#load_day(day_down)
+	if len(choise) == 10:
+		day_down = choise
+		print(day_down)
+		load_day(day_down)
+	else:
+		counts_days = counts_days(int(choise))
+		for day in counts_days:
+			day_down = day + '.' + tickers.month[int(choise)-1] + '.2022'
+			if not day_down[:5] in tickers.holidays:
+				day_d = datetime.strptime(day_down, '%d.%m.%Y').date()
+				if day_d.weekday() in LIST_DAYS:
+					print(day_down)
+					load_day(day_down)
 	time_end = str(datetime.now() - start_time).split('.')[0]
 	print("Все сделано за", time_end)
 	
