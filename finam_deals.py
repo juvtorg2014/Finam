@@ -9,9 +9,12 @@ import zipfile as zf
 import shutil
 import pathlib
 import time
+import calendar
+from dateutil import parser
+from holidays_ru import check_holiday
+
 
 ANSWER = 'Система уже обрабатывает Ваш запрос. Дождитесь окончания обработки.'
-LIST_DAYS = (0, 1, 2, 3, 4)
 
 
 def load_day(day_trade):
@@ -123,40 +126,66 @@ def yesterday_work(tek_day) -> str:
 		return last_day.strftime('%d.%m.%Y')
 	
 
-def make_list_days(first, second,) -> list:
+def make_month(my_date) -> tuple:
+	month = my_date.split(' ')[0]
+	month = '0' + month if len(month) == 1 else month
+	year = '20' + my_date.split(' ')[1]
+	first = '01.' + month + '.' + year
+	last_day = calendar.monthrange(int(year), int(month))[1]
+	second = str(last_day) + first[2:]
+	return first, second
+	
+	
+def make_list_days(first, second) -> list:
 	days = [d for d in range(first, second + 1)]
 	weeks = [days[i:i + 7] for i in range(0, len(days), 7)]
 	work_weeks = [week[0:5] for week in weeks]
 	list_days = sum(work_weeks, [])
 	return list_days
 
+	
+def day_delta(first, last) -> list:
+	""" Формирует список дат, которые нужно загрузить """
+	list_days = []
+	first_day = datetime.strptime(first, "%d.%m.%Y").date()
+	second_day = datetime.strptime(last, "%d.%m.%Y").date()
+	while first_day <= second_day:
+		if not check_holiday(first_day):
+			list_days.append(first_day.strftime("%d.%m.%Y"))
+		first_day += timedelta(days=1)
+	return list_days
 
-def counts_days(number) -> list:
-	if number in tickers.short_month:
-		return tickers.days[:30]
-	elif number == 2:
-		return tickers.days[:28]
-	else:
-		return tickers.days
+
+def choose_days(first_day, last_day) -> tuple:
+	""" Формирует даты в нужном формате из введенных пользователем """
+	day_1 = parser.parse(first_day).date()
+	day_2 = parser.parse(last_day).date()
+	day_1 = day_1.strftime("%d.%m.%Y")
+	day_2 = day_2.strftime("%d.%m.%Y")
+	return day_1, day_2
 	
 	
 if __name__ == '__main__':
-	choise = input('Введите дату в формате <<ДД.ММ.ГГГГ>> или номер месяца:\n')
+	choise = input('Введите дату в формате <<ММ.ДД.ГГ>> или номер месяца с годом через пробел'
+				   'в формате <3 23>\n или диапозон дат в формате <<ДД.ММ.ГГ-ДД.ММ.ГГ> \n')
 	start_time = datetime.now()
-	if len(choise) == 10:
-		day_down = choise
-		print(day_down)
-		load_day(day_down)
+	if '-' in choise:
+		argv = choise.split('-')
+		first, second = choose_days(argv[0], argv[1])
+		day_list = day_delta(first, second)
+		for day in day_list:
+			#load_day(day)
+			print(day)
+	elif ' ' in choise:
+		first, second = make_month(choise)
+		day_list = day_delta(first, second)
+		for day in day_list:
+			#load_day(day)
+			print(day)
 	else:
-		counts_days = counts_days(int(choise))
-		for day in counts_days:
-			day_down = day + '.' + tickers.month[int(choise)-1] + '.2022'
-			if not day_down[:5] in tickers.holidays:
-				day_d = datetime.strptime(day_down, '%d.%m.%Y').date()
-				if day_d.weekday() in LIST_DAYS:
-					print(day_down)
-					load_day(day_down)
-	time_end = str(datetime.now() - start_time).split('.')[0]
-	print("Все сделано за", time_end)
+		day = parser.parse(choise).date()
+		#load_day(day)
+		print(day)
+	print("Все сделано за", str(datetime.now() - start_time).split('.')[0])
 	
 	
