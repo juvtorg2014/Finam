@@ -17,7 +17,7 @@ from holidays_ru import check_holiday
 ANSWER = 'Система уже обрабатывает Ваш запрос. Дождитесь окончания обработки.'
 
 
-def load_day(day_trade):
+def load_day(mode, day_trade):
 	"""Перебор тикеров и отправка на сервер загрузочных url."""
 	main_dir = os.getcwd() + '\\'
 	name_dir = day_trade[-4:] + day_trade[3:5] + day_trade[:2]
@@ -29,19 +29,27 @@ def load_day(day_trade):
 		os.mkdir(new_dir)
 		
 	# Извлечение данных и сохранение в файлы
-	for item in tickers.tickers:
-		time.sleep(1)
-		finam_parsing(new_dir, item, day_start, day_start_new)
+	if mode == '1':
+		for item in tickers.tickers:
+			time.sleep(1)
+			finam_parsing(mode, new_dir, item, day_start, day_start_new)
+	else:
+		for item in tickers.futures:
+			time.sleep(1)
+			finam_parsing(mode, new_dir, item, day_start, day_start_new)
 	
 	# Завершение операций: сжатие и удаление
-	zip_files(new_dir)
+	zip_files(mode, new_dir)
 	delete_files(new_dir)
 	
 	
-def zip_files(curr_dir):
+def zip_files(mode, curr_dir):
 	"""Сжатие созданных файлов в архив."""
 	cur_dir = pathlib.Path(curr_dir)
-	zip_name = cur_dir.stem + '.zip'
+	if mode == '1':
+		zip_name = 'st_' + cur_dir.stem + '.zip'
+	else:
+		zip_name = 'fut_' + cur_dir.stem + '.zip'
 	with zf.ZipFile(zip_name, mode='w') as fout:
 		for file in cur_dir.iterdir():
 			if os.stat(file).st_size != 0:
@@ -54,35 +62,64 @@ def delete_files(curr_dir):
 		shutil.rmtree(curr_dir)
 
 			
-def finam_parsing(dir_new, stock, start, start_new):
-	"""Парсинг и загрузка данных торгов по списку акций."""
-	params = urlencode([
-		('market', 0),  # на каком рынке торгуется бумага
-		('em', tickers.tickers[stock]),  # вытягиваем цифровой символ, который соответствует бумаге.
-		('code', stock),  # тикер нашей акции
-		('apply', 0),  # не нашёл что это значит.
-		('df', start.day),  # Начальная дата, номер дня (1-31)
-		('mf', start.month - 1),  # Начальная дата, номер месяца (0-11)
-		('yf', start.year),  # Начальная дата, год
-		('from', start),  # Начальная дата полностью
-		('dt', start.day),  # Конечная дата, номер дня
-		('mt', start.month - 1),  # Конечная дата, номер месяца
-		('yt', start.year),  # Конечная дата, год
-		('to', start),  # Конечная дата
-		('p', 1),  # Таймфрейм
-		('f', stock + "_" + start_new),  # Имя сформированного файла
-		('e', ".csv"),  # Расширение сформированного файла
-		('cn', stock),  # ещё раз тикер акции
-		('dtf', 1),  # Формат даты. Выбор из 5. См. https://www.finam.ru/profile/moex-akcii/sberbank/export/
-		('tmf', 1),  # В каком формате брать время. Выбор из 4 возможных.
-		('MSOR', 0),  # Время свечи (0 - open; 1 - close)
-		('mstime', "on"),  # Московское время
-		('mstimever', 1),  # Коррекция часового пояса
-		('sep', 3),  # Разделитель полей (1-запятая, 2-точка, 3-точка с запятой, 4-табуляция, 5-пробел)
-		('sep2', 1),  # Разделитель разрядов
-		('datf', 12),  # Формат записи в файл. Выбор из 6 возможных.
-		('at', 1)])  # Нужны ли заголовки столбцов
-	
+def finam_parsing(mode, dir_new, stock, start, start_new):
+	""" Парсинг и загрузка данных торгов по списку акций или фьючерсов. """
+	params = ''
+	if mode == '1':
+		params = urlencode([
+			('market', 0),  # на каком рынке торгуется бумага
+			('em', tickers.tickers[stock]),  # вытягиваем цифровой символ, который соответствует бумаге.
+			('code', stock),  # тикер нашей акции
+			('apply', 0),  # не нашёл что это значит.
+			('df', start.day),  # Начальная дата, номер дня (1-31)
+			('mf', start.month - 1),  # Начальная дата, номер месяца (0-11)
+			('yf', start.year),  # Начальная дата, год
+			('from', start),  # Начальная дата полностью
+			('dt', start.day),  # Конечная дата, номер дня
+			('mt', start.month - 1),  # Конечная дата, номер месяца
+			('yt', start.year),  # Конечная дата, год
+			('to', start),  # Конечная дата
+			('p', 1),  # Таймфрейм
+			('f', stock + "_" + start_new),  # Имя сформированного файла
+			('e', ".csv"),  # Расширение сформированного файла
+			('cn', stock),  # ещё раз тикер акции
+			('dtf', 1),  # Формат даты. Выбор из 5. См. https://www.finam.ru/profile/moex-akcii/sberbank/export/
+			('tmf', 1),  # В каком формате брать время. Выбор из 4 возможных.
+			('MSOR', 0),  # Время свечи (0 - open; 1 - close)
+			('mstime', "on"),  # Московское время
+			('mstimever', 1),  # Коррекция часового пояса
+			('sep', 3),  # Разделитель полей (1-запятая, 2-точка, 3-точка с запятой, 4-табуляция, 5-пробел)
+			('sep2', 1),  # Разделитель разрядов
+			('datf', 12),  # Формат записи в файл. Выбор из 6 возможных.
+			('at', 1)])  # Нужны ли заголовки столбцов
+	elif mode == '2':
+		params = urlencode([
+			('market', 14),  # на каком рынке торгуется бумага
+			('em', tickers.futures[stock]),  # вытягиваем цифровой символ, который соответствует бумаге.
+			('code', stock),  # тикер нашей акции
+			('apply', 0),  # не нашёл что это значит.
+			('df', start.day),  # Начальная дата, номер дня (1-31)
+			('mf', start.month - 1),  # Начальная дата, номер месяца (0-11)
+			('yf', start.year),  # Начальная дата, год
+			('from', start),  # Начальная дата полностью
+			('dt', start.day),  # Конечная дата, номер дня
+			('mt', start.month - 1),  # Конечная дата, номер месяца
+			('yt', start.year),  # Конечная дата, год
+			('to', start),  # Конечная дата
+			('p', 1),  # Таймфрейм
+			('f', stock + "_" + start_new),  # Имя сформированного файла
+			('e', ".csv"),  # Расширение сформированного файла
+			('cn', stock),  # ещё раз тикер акции
+			('dtf', 1),  # Формат даты. Выбор из 5. См. https://www.finam.ru/profile/moex-akcii/sberbank/export/
+			('tmf', 1),  # В каком формате брать время. Выбор из 4 возможных.
+			('MSOR', 0),  # Время свечи (0 - open; 1 - close)
+			('mstime', "on"),  # Московское время
+			('mstimever', 1),  # Коррекция часового пояса
+			('sep', 3),  # Разделитель полей (1-запятая, 2-точка, 3-точка с запятой, 4-табуляция, 5-пробел)
+			('sep2', 1),  # Разделитель разрядов
+			('datf', 12),  # Формат записи в файл. Выбор из 6 возможных.
+			('at', 1)])  # Нужны ли заголовки столбцов
+		
 	file_name = stock + '_' + start_new + '.csv'
 	url = tickers.FINAM_URL + file_name + '?' + params
 	ua = UserAgent()
@@ -130,25 +167,25 @@ def make_month(my_date) -> tuple:
 	month = my_date.split(' ')[0]
 	month = '0' + month if len(month) == 1 else month
 	year = '20' + my_date.split(' ')[1]
-	first = '01.' + month + '.' + year
+	first_day = '01.' + month + '.' + year
 	last_day = calendar.monthrange(int(year), int(month))[1]
-	second = str(last_day) + first[2:]
-	return first, second
+	second_day = str(last_day) + first[2:]
+	return first_day, second_day
 	
 	
-def make_list_days(first, second) -> list:
-	days = [d for d in range(first, second + 1)]
+def make_list_days(first_d, second_d) -> list:
+	days = [d for d in range(first_d, second_d + 1)]
 	weeks = [days[i:i + 7] for i in range(0, len(days), 7)]
 	work_weeks = [week[0:5] for week in weeks]
 	list_days = sum(work_weeks, [])
 	return list_days
 
 	
-def day_delta(first, last) -> list:
+def day_delta(day_first, day_last) -> list:
 	""" Формирует список дат, которые нужно загрузить """
 	list_days = []
-	first_day = datetime.strptime(first, "%d.%m.%Y").date()
-	second_day = datetime.strptime(last, "%d.%m.%Y").date()
+	first_day = datetime.strptime(day_first, "%d.%m.%Y").date()
+	second_day = datetime.strptime(day_last, "%d.%m.%Y").date()
 	while first_day <= second_day:
 		if not check_holiday(first_day):
 			list_days.append(first_day.strftime("%d.%m.%Y"))
@@ -166,25 +203,28 @@ def choose_days(first_day, last_day) -> tuple:
 	
 	
 if __name__ == '__main__':
-	choise = input('Введите дату в формате <<ММ.ДД.ГГ>> или номер месяца с годом через пробел'
-				   'в формате <3 23>\n или диапозон дат в формате <<ДД.ММ.ГГ-ДД.ММ.ГГ> \n')
+	mode_market = input("Что грузить: акции - '1' или фьючерсы - '2'\n")
+	if mode_market not in ('1', '2'):
+		exit("'Неправильно выбран рынок!'")
+	choised = input('Введите дату в формате <<ДД.ММ.ГГ>> или номер месяца с годом через пробел'
+					'в формате <3 23>\n или диапозон дат в формате <<ДД.ММ.ГГ-ДД.ММ.ГГ> \n')
 	start_time = datetime.now()
-	if '-' in choise:
-		argv = choise.split('-')
+	if '-' in choised:
+		argv = choised.split('-')
 		first, second = choose_days(argv[0], argv[1])
 		day_list = day_delta(first, second)
 		for day in day_list:
-			#load_day(day)
+			load_day(mode_market, day)
 			print(day)
-	elif ' ' in choise:
-		first, second = make_month(choise)
+	elif ' ' in choised:
+		first, second = make_month(choised)
 		day_list = day_delta(first, second)
 		for day in day_list:
-			#load_day(day)
+			load_day(mode_market, day)
 			print(day)
 	else:
-		day = parser.parse(choise).date()
-		#load_day(day)
+		day, day_same = choose_days(choised, choised)
+		load_day(mode_market, day)
 		print(day)
 	print("Все сделано за", str(datetime.now() - start_time).split('.')[0])
 	
